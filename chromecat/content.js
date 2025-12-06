@@ -1,3 +1,8 @@
+console.log("circle overlay content script loaded on", location.href);
+
+const spriteUrl = chrome.runtime.getURL("sprite.png");
+console.log("sprite URL:", spriteUrl);
+
 let circle = null;
 let dragging = false;
 let offsetX = 0;
@@ -40,8 +45,9 @@ function smoothMove() {
   requestAnimationFrame(smoothMove);
 }
 
-
 function createCircle() {
+  if (circle) return;
+
   circle = document.createElement("div");
   circle.id = "circle-cover-overlay";
 
@@ -49,13 +55,16 @@ function createCircle() {
     position: "fixed",
     width: "150px",
     height: "150px",
-    borderRadius: "50%",
-    background: "black",      // solid cover
-    opacity: "1",
+    backgroundImage: `url(${spriteUrl})`,
+    backgroundSize: "contain",
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "center",
     top: "100px",
     left: "100px",
     zIndex: "999999",
-    cursor: "move"
+    cursor: "move",
+    // borderRadius: "50%", // uncomment if you want a circular mask again
+    // border: "2px solid red", // debug: see bounds
   });
 
   document.body.appendChild(circle);
