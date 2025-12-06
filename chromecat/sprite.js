@@ -7,17 +7,14 @@ const FRAME_HEIGHT = 150;     // height of one frame in px
 const FRAME_COUNT = 34;        // how many frames across
 const ANIM_DURATION = 0.6;    // seconds for one full walk loop
 
-// circle stuff idk
+
 let circle = null;
 let dragging = false;
 let offsetX = 0;
 let offsetY = 0;
-
-// click animation stuff
 let wasDragging = false;
-
-
-// 2. URL for the sprite sheet inside the extension
+let lastX = null;
+//---------------------------Loading resources ----------------------------
 const spriteSheetUrl = chrome.runtime.getURL("resources/spritesheet34.png");
 console.log("spritesheet URL:", spriteSheetUrl);
 
@@ -34,22 +31,7 @@ const meowAudioObjects = meowSounds.map(path => {
   return audio;
 });
 console.log("meow URLs", meowSounds);
-
-
-function injectWalkKeyframes() {
-  const fullWidth = FRAME_WIDTH * FRAME_COUNT;
-  const css = `
-    @keyframes walk {
-      from { background-position: 0 0; }
-      to   { background-position: -${fullWidth}px 0; }
-    }
-  `;
-  const styleEl = document.createElement("style");
-  styleEl.textContent = css;
-  document.head.appendChild(styleEl);
-}
-
-injectWalkKeyframes();
+//-------------------------------Helpers--------------------------------
 
 function applyWalkingAnimation(element) {
   element.style.width = FRAME_WIDTH + "px";
@@ -78,6 +60,26 @@ function updateWalkAnimationSpeed(element, speed) {
   element.style.animation = `walk ${duration.toFixed(2)}s steps(${FRAME_COUNT}) infinite`;
 }
 
+function injectWalkKeyframes() {
+  const fullWidth = FRAME_WIDTH * FRAME_COUNT;
+  const css = `
+    @keyframes walk {
+      from { background-position: 0 0; }
+      to   { background-position: -${fullWidth}px 0; }
+    }
+  `;
+  const styleEl = document.createElement("style");
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+}
+
+function flipSprite(el, faceLeft) {
+    el.style.transform = faceLeft ? "scaleX(-1)" : "scaleX(1)";
+}
+
+//---------------------------------main logic---------------------------
+injectWalkKeyframes();
+
 function createCircle() {
   if (circle) return;
 
@@ -89,17 +91,30 @@ function createCircle() {
     top: "100px",
     left: "100px",
     zIndex: "999999",
-    cursor: "move"
+    cursor: "move",
+    transformOrigin: "50% 50%",
   });
 
   applyWalkingAnimation(circle)
 
   document.body.appendChild(circle);
 
-  // start drifting using the lib
   if (window.SpriteMotion) {
     window.SpriteMotion.start(circle, (speed) => {
-      updateWalkAnimationSpeed(circle, speed)
+      updateWalkAnimationSpeed(circle, speed);
+
+      const rect = circle.getBoundingClientRect();
+      const currentX = rect.left;
+
+      if (lastX !== null) {
+        if (currentX < lastX) {
+          flipSprite(circle, false);
+        } else if (currentX > lastX) {
+          flipSprite(circle, true);
+        }
+      }
+
+      lastX = currentX;
     });
   }
 
@@ -152,8 +167,10 @@ function removeCircle() {
 function toggleCircle() {
   if (circle) {
     removeCircle();
+    chrome.storage.sync.set({ catEnabled: false });
   } else {
     createCircle();
+    chrome.storage.sync.set({catEnabled: true});
   }
 }
 
@@ -161,5 +178,12 @@ function toggleCircle() {
 window.addEventListener("keydown", (e) => {
   if (e.altKey && e.shiftKey && e.code === "KeyX") {
     toggleCircle();
+  }
+});
+
+chrome.storage.sync.get("catEnabled", (result) => {
+  const enabled = result.catEnabled;
+  if (enabled === undefined || enabled === true) {
+    createCircle();
   }
 });

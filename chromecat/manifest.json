@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Circle Cover Overlay",
+  "name": "Chrome Cat",
   "version": "1.0",
-  "description": "Adds a movable sprite to cover parts of the page.",
+  "description": "Adds a movable sprite to walk around your screen.",
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
@@ -13,7 +13,7 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["tabs"],
+  "permissions": ["tabs", "storage"],
   "web_accessible_resources": [
     {
       "resources": ["resources/**"],
