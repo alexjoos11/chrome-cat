@@ -8,6 +8,7 @@
     pickingNewTarget: false,
     active: false,
     circle: null,
+    onSpeedChange: null,
   };
 
   function pickNewTarget() {
@@ -16,10 +17,9 @@
   }
 
   function loop() {
-    if (!state.active || !state.circle) {
-      requestAnimationFrame(loop);
-      return;
-    }
+    requestAnimationFrame(loop);
+
+    if (!state.active || !state.circle) return;
 
     const rect = state.circle.getBoundingClientRect();
     const currentX = rect.left;
@@ -28,8 +28,19 @@
     const nextX = currentX + (state.targetX - currentX) * state.moveSpeed;
     const nextY = currentY + (state.targetY - currentY) * state.moveSpeed;
 
+    // <<< movement >>>
     state.circle.style.left = `${nextX}px`;
     state.circle.style.top = `${nextY}px`;
+
+    // <<< compute speed (pixels per frame) >>>
+    const dx = nextX - currentX;
+    const dy = nextY - currentY;
+    const speed = Math.hypot(dx, dy); // small when moving slowly
+
+    // Call the callback if provided
+    if (typeof state.onSpeedChange === "function") {
+      state.onSpeedChange(speed);
+    }
 
     const dist = Math.hypot(state.targetX - currentX, state.targetY - currentY);
     if (dist < 5 && !state.pickingNewTarget) {
@@ -39,22 +50,21 @@
         state.pickingNewTarget = false;
       }, 300);
     }
-
-    requestAnimationFrame(loop);
   }
 
-  function start(circle) {
+  function start(circle, onSpeedChange) {
     state.circle = circle;
     state.active = true;
+    state.onSpeedChange = onSpeedChange || null;
     pickNewTarget();
   }
 
   function stop() {
     state.active = false;
     state.circle = null;
+    state.onSpeedChange = null;
   }
 
-  // Expose a tiny API for other files
   window.SpriteMotion = { start, stop };
   requestAnimationFrame(loop);
 })();

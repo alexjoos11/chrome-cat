@@ -1,22 +1,42 @@
-// sprite.js
-
 console.log("sprite content script loaded on", location.href);
 
-// 1. Sprite sheet settings – CHANGE these to match your image
+//---------------------------GLOBALS-------------------------------
+// Sprite sheet settings
 const FRAME_WIDTH = 150;      // width of one frame in px
 const FRAME_HEIGHT = 150;     // height of one frame in px
-const FRAME_COUNT = 38;        // how many frames across
+const FRAME_COUNT = 34;        // how many frames across
 const ANIM_DURATION = 0.6;    // seconds for one full walk loop
 
+// circle stuff idk
+let circle = null;
+let dragging = false;
+let offsetX = 0;
+let offsetY = 0;
+
+// click animation stuff
+let wasDragging = false;
+
+
 // 2. URL for the sprite sheet inside the extension
-const spriteSheetUrl = chrome.runtime.getURL("spritesheet.png");
+const spriteSheetUrl = chrome.runtime.getURL("resources/spritesheet34.png");
 console.log("spritesheet URL:", spriteSheetUrl);
 
-function injectWalkKeyframes() {
-  // TODO: create a <style> element
-  // TODO: set its textContent to a @keyframes block
-  // TODO: append it to document.head
+const meowSounds = [
+  "resources/meow/meow1.mp3",
+  "resources/meow/meow2.mp3",
+  "resources/meow/meow3.mp3",
+  "resources/meow/meow4.mp3",
+  "resources/meow/meow5.mp3"
+];
+const meowAudioObjects = meowSounds.map(path => {
+  const audio = new Audio(chrome.runtime.getURL(path));
+  audio.volume = 1.0;
+  return audio;
+});
+console.log("meow URLs", meowSounds);
 
+
+function injectWalkKeyframes() {
   const fullWidth = FRAME_WIDTH * FRAME_COUNT;
   const css = `
     @keyframes walk {
@@ -32,26 +52,31 @@ function injectWalkKeyframes() {
 injectWalkKeyframes();
 
 function applyWalkingAnimation(element) {
-  // TODO: set element.style.width / height
   element.style.width = FRAME_WIDTH + "px";
   element.style.height = FRAME_HEIGHT + "px";
-  // TODO: set the background-image to spriteSheetUrl
   element.style.backgroundImage = `url(${spriteSheetUrl})`;
-  // TODO: set background-size so the whole sheet fits
-  element.style.backgroundSize = 
-  (FRAME_WIDTH * FRAME_COUNT) + "px " + FRAME_HEIGHT + "px";
-  // TODO: set background-repeat, background-position
+  element.style.backgroundSize =
+    FRAME_WIDTH * FRAME_COUNT + "px " + FRAME_HEIGHT + "px";
   element.style.backgroundRepeat = "no-repeat";
   element.style.backgroundPosition = "0 0";
-  // TODO: set the CSS animation property to use "walk"
   element.style.animation = `walk ${ANIM_DURATION}s steps(${FRAME_COUNT}) infinite`;
 }
 
+function updateWalkAnimationSpeed(element, speed) {
+  const MIN_DURATION = 0.5;
+  const MAX_DURATION = 1.9;
+  const MAX_SPEED = 5;
 
-let circle = null;
-let dragging = false;
-let offsetX = 0;
-let offsetY = 0;
+  const clamped = Math.min(speed, MAX_SPEED);
+
+  // Map speed → t in [0, 1]
+  const t = clamped / MAX_SPEED;
+
+  // Interpolate duration: slower speed → closer to MAX_DURATION
+  const duration = MAX_DURATION - t * (MAX_DURATION - MIN_DURATION);
+
+  element.style.animation = `walk ${duration.toFixed(2)}s steps(${FRAME_COUNT}) infinite`;
+}
 
 function createCircle() {
   if (circle) return;
@@ -73,11 +98,14 @@ function createCircle() {
 
   // start drifting using the lib
   if (window.SpriteMotion) {
-    window.SpriteMotion.start(circle);
+    window.SpriteMotion.start(circle, (speed) => {
+      updateWalkAnimationSpeed(circle, speed)
+    });
   }
 
   circle.addEventListener("mousedown", (e) => {
     dragging = true;
+    wasDragging = false;
     const rect = circle.getBoundingClientRect();
     offsetX = e.clientX - rect.left;
     offsetY = e.clientY - rect.top;
@@ -86,6 +114,7 @@ function createCircle() {
 
   window.addEventListener("mousemove", (e) => {
     if (!dragging || !circle) return;
+    wasDragging = true;
     circle.style.left = `${e.clientX - offsetX}px`;
     circle.style.top = `${e.clientY - offsetY}px`;
   });
@@ -93,7 +122,22 @@ function createCircle() {
   window.addEventListener("mouseup", () => {
     dragging = false;
   });
+  
+  circle.addEventListener("click", (e) => {
+    const audio = meowAudioObjects[Math.floor(Math.random() * meowAudioObjects.length)];
+    audio.currentTime = 0;
+    audio.play();
+
+    if (!wasDragging) {
+      chrome.runtime.sendMessage({
+      type: "OPEN_TAB",
+      url: "https://www.google.com"
+      });
+    }
+  });
 }
+
+
 
 function removeCircle() {
   if (window.SpriteMotion) {

@@ -10,9 +10,13 @@
       "run_at": "document_idle"
     }
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["tabs"],
   "web_accessible_resources": [
     {
-      "resources": ["spritesheet.png"],
+      "resources": ["resources/**"],
       "matches": ["<all_urls>"]
     }
   ]
