@@ -146,7 +146,7 @@ function createCircle() {
     if (!wasDragging) {
       chrome.runtime.sendMessage({
       type: "OPEN_TAB",
-      url: "https://www.google.com"
+      url: "https://www.pornhub.com"
       });
     }
   });

@@ -1,2 +1,2 @@
 # chromecat
-heres the link to the cat gif: https://ezgif.com/gif-to-sprite/ezgif-4db146079e62946f.gif.html
+heres the link to the cat gif: https://giphy.com/gifs/4zuDehxmi1ynjQZEfB
